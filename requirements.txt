@@ -1,0 +1,17 @@
+# OS Simulator — Python Dependencies
+# All modules below are part of Python standard library (no pip install needed)
+# Python 3.8+ required
+
+# Standard Library (built-in, no installation needed):
+# - threading     → Producer-Consumer synchronization
+# - queue         → Thread-safe queues
+# - collections   → deque for scheduling queues
+# - random        → Random process generation
+# - time          → Timestamps for file system
+# - enum          → State enumerations
+# - json          → Output formatting
+
+# Optional (for extended features):
+# Uncomment if you want to add GUI or plotting:
+# matplotlib>=3.5.0    # For matplotlib Gantt charts
+# tkinter              # Built-in GUI (comes with Python)

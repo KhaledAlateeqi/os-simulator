@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OS Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap');
+
+:root {
+  --bg: #0a0e1a;
+  --surface: #111827;
+  --surface2: #1a2236;
+  --border: #1e2d45;
+  --accent: #00d4ff;
+  --accent2: #7c3aed;
+  --accent3: #10b981;
+  --accent4: #f59e0b;
+  --accent5: #ef4444;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --green: #22d3ee;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Animated grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+/* Header */
+header {
+  text-align: center;
+  padding: 40px 0 30px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 30px;
+}
+
+header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+
+header p {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 8px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  flex: 1;
+  min-width: 120px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tab:hover { color: var(--text); background: var(--surface2); }
+.tab.active {
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  color: white;
+  font-weight: 600;
+}
+
+/* Panels */
+.panel { display: none; animation: fadeIn 0.3s ease; }
+.panel.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* Controls */
+.controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+
+select, input[type="range"], input[type="number"] {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  outline: none;
+  cursor: pointer;
+}
+
+select:focus, input:focus { border-color: var(--accent); }
+
+btn-run {
+  display: inline-block;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+button {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+button:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,212,255,0.3); }
+button:active { transform: translateY(0); }
+button.secondary {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* Stats row */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+
+.stat {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+
+.stat-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+th { background: var(--surface2); color: var(--accent); text-transform: uppercase; letter-spacing: 1px; padding: 10px 12px; text-align: left; font-size: 0.65rem; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+tr:hover td { background: rgba(0,212,255,0.03); }
+
+/* Gantt Chart */
+.gantt-wrap { overflow-x: auto; margin-top: 16px; }
+#gantt-canvas { display: block; }
+
+/* Memory Grid */
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.frame {
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.frame.free { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+.frame.used { border: 1px solid transparent; color: white; }
+
+/* Page Replacement Table */
+.page-table { overflow-x: auto; }
+.page-row { display: flex; gap: 2px; align-items: center; margin-bottom: 2px; }
+.page-cell {
+  width: 32px; height: 32px;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.page-cell.fault { background: rgba(239,68,68,0.2); border-color: var(--accent5); color: var(--accent5); }
+.page-cell.hit { background: rgba(16,185,129,0.2); border-color: var(--accent3); color: var(--accent3); }
+.page-cell.empty { background: transparent; border-color: transparent; }
+.page-cell.frame-val { background: rgba(0,212,255,0.1); border-color: var(--accent); color: var(--accent); }
+
+/* Log */
+.log-box {
+  background: #060a12;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  height: 180px;
+  overflow-y: auto;
+  font-size: 0.72rem;
+  line-height: 1.8;
+}
+
+.log-box::-webkit-scrollbar { width: 4px; }
+.log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.log-line { padding: 1px 0; }
+.log-ok { color: var(--accent3); }
+.log-err { color: var(--accent5); }
+.log-info { color: var(--accent); }
+.log-warn { color: var(--accent4); }
+
+/* Deadlock matrix */
+.matrix-wrap { overflow-x: auto; }
+.matrix { border-collapse: collapse; font-size: 0.7rem; }
+.matrix th, .matrix td { padding: 8px 14px; text-align: center; border: 1px solid var(--border); }
+.matrix th { background: var(--surface2); color: var(--accent); }
+.matrix td { background: var(--surface); }
+
+/* File Tree */
+.file-tree { font-size: 0.78rem; line-height: 2; }
+.tree-dir { color: var(--accent4); font-weight: 600; }
+.tree-file { color: var(--text); padding-left: 20px; }
+.tree-item { cursor: pointer; }
+
+/* Producer Consumer */
+.buffer-viz {
+  display: flex;
+  gap: 6px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.buffer-slot {
+  width: 60px; height: 60px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem;
+  transition: all 0.4s;
+  text-align: center;
+  padding: 4px;
+  word-break: break-all;
+}
+
+.buffer-slot.filled {
+  background: rgba(124,58,237,0.2);
+  border-color: var(--accent2);
+  color: var(--text);
+}
+
+.buffer-slot.empty {
+  background: var(--surface2);
+  color: var(--muted);
+}
+
+/* Grid layouts */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* Safe sequence badge */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin: 2px;
+}
+
+.badge-safe { background: rgba(16,185,129,0.2); color: var(--accent3); border: 1px solid var(--accent3); }
+.badge-danger { background: rgba(239,68,68,0.2); color: var(--accent5); border: 1px solid var(--accent5); }
+.badge-info { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid var(--accent); }
+
+/* Progress bar */
+.progress-bar {
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+/* Algo compare bars */
+.algo-compare { margin-top: 12px; }
+.algo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.72rem; }
+.algo-label { width: 100px; color: var(--muted); flex-shrink: 0; }
+.algo-bar-wrap { flex: 1; background: var(--surface2); border-radius: 4px; height: 20px; overflow: hidden; }
+.algo-bar { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 0.65rem; color: white; font-weight: 600; transition: width 0.8s ease; }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>OS SIMULATOR</h1>
+    <p>Process Scheduling · Memory · Deadlock · FileSystem · Sync · Page Replacement</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('scheduling')">⚙️ Scheduling</button>
+    <button class="tab" onclick="switchTab('memory')">🧠 Memory</button>
+    <button class="tab" onclick="switchTab('deadlock')">🔒 Deadlock</button>
+    <button class="tab" onclick="switchTab('paging')">📄 Page Replacement</button>
+    <button class="tab" onclick="switchTab('filesystem')">🗂️ File System</button>
+    <button class="tab" onclick="switchTab('sync')">🔄 Sync</button>
+  </div>
+
+  <!-- SCHEDULING -->
+  <div id="tab-scheduling" class="panel active">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Process Scheduling</div>
+      <div class="controls">
+        <select id="sched-algo">
+          <option>FCFS</option>
+          <option>SJF</option>
+          <option>Priority</option>
+          <option selected>Round Robin</option>
+        </select>
+        <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">
+          Quantum: <input type="number" id="quantum" value="3" min="1" max="10" style="width:60px">
+        </label>
+        <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">
+          Processes: <input type="number" id="num-proc" value="5" min="2" max="10" style="width:60px">
+        </label>
+        <button onclick="runScheduling()">▶ Run</button>
+        <button class="secondary" onclick="runAllAlgos()">Compare All</button>
+      </div>
+      <div class="stats" id="sched-stats"></div>
+      <div id="sched-table-wrap"></div>
+      <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--accent4)"></span>Gantt Chart</div>
+      <div class="gantt-wrap"><canvas id="gantt-canvas" height="60"></canvas></div>
+    </div>
+    <div class="card" id="algo-compare-card" style="display:none">
+      <div class="card-title"><span class="dot" style="background:var(--accent3)"></span>Algorithm Comparison</div>
+      <div id="algo-compare-wrap"></div>
+    </div>
+  </div>
+
+  <!-- MEMORY -->
+  <div id="tab-memory" class="panel">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent3)"></span>Memory Frames</div>
+        <div class="controls">
+          <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">
+            Total RAM (KB): <input type="number" id="mem-total" value="4096" min="512" max="16384" step="512" style="width:80px">
+          </label>
+          <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">
+            Page Size: <input type="number" id="page-size" value="256" min="64" max="1024" step="64" style="width:80px">
+          </label>
+          <button onclick="runMemory()">▶ Allocate</button>
+        </div>
+        <div class="stats" id="mem-stats"></div>
+        <div class="progress-bar"><div class="progress-fill" id="mem-progress" style="width:0%"></div></div>
+        <div style="font-size:.65rem;color:var(--muted);margin-top:4px" id="mem-util-label"></div>
+        <div class="memory-grid" id="mem-grid"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>Address Translation</div>
+        <div class="controls">
+          <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">
+            PID: <input type="number" id="trans-pid" value="1" min="1" max="10" style="width:60px">
+          </label>
+          <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">
+            Logical Addr: <input type="number" id="trans-addr" value="300" style="width:80px">
+          </label>
+          <button onclick="translateAddr()">Translate</button>
+        </div>
+        <div id="trans-result" style="font-size:.8rem;margin-top:12px;color:var(--accent3)"></div>
+        <div class="card-title" style="margin-top:20px"><span class="dot"></span>Memory Log</div>
+        <div class="log-box" id="mem-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEADLOCK -->
+  <div id="tab-deadlock" class="panel">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent5)"></span>Banker's Algorithm – Deadlock Avoidance</div>
+      <div class="controls">
+        <button onclick="runDeadlock()">▶ Run Safety Check</button>
+        <button class="secondary" onclick="simulateDeadlock()">Simulate Deadlock</button>
+      </div>
+      <div id="deadlock-status" style="margin:12px 0;font-size:.85rem;"></div>
+      <div class="grid2">
+        <div>
+          <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Available Resources</div>
+          <div id="avail-display"></div>
+        </div>
+        <div>
+          <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Safe Sequence</div>
+          <div id="safe-seq-display"></div>
+        </div>
+      </div>
+      <div class="matrix-wrap" style="margin-top:20px">
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Allocation / Max / Need Matrices</div>
+        <table class="matrix" id="deadlock-matrix"></table>
+      </div>
+      <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--accent4)"></span>Resource Request Simulator</div>
+      <div class="controls">
+        <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">PID: <input type="number" id="req-pid" value="1" min="0" max="4" style="width:60px"></label>
+        <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">R0: <input type="number" id="req-r0" value="1" min="0" max="5" style="width:50px"></label>
+        <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">R1: <input type="number" id="req-r1" value="0" min="0" max="5" style="width:50px"></label>
+        <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">R2: <input type="number" id="req-r2" value="2" min="0" max="5" style="width:50px"></label>
+        <button onclick="requestResource()">Request</button>
+      </div>
+      <div id="req-result" style="font-size:.8rem;margin-top:8px"></div>
+      <div class="log-box" id="deadlock-log" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- PAGE REPLACEMENT -->
+  <div id="tab-paging" class="panel">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent4)"></span>Page Replacement Algorithms</div>
+      <div class="controls">
+        <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">
+          Frames: <input type="number" id="page-frames" value="4" min="2" max="8" style="width:60px">
+        </label>
+        <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">
+          Pages (0-7): <input type="text" id="ref-string" value="7,0,1,2,0,3,0,4,2,3,0,3,0,3,2,1,2,0,1,7" style="width:280px">
+        </label>
+        <button onclick="runPaging()">▶ Compare</button>
+        <button class="secondary" onclick="randomRefString()">Random</button>
+      </div>
+      <div class="stats" id="page-stats"></div>
+      <div id="page-results"></div>
+    </div>
+  </div>
+
+  <!-- FILE SYSTEM -->
+  <div id="tab-filesystem" class="panel">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent4)"></span>File System</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">Current Path: <span id="fs-pwd" style="color:var(--accent)">/</span></div>
+        <div class="controls" style="margin-top:8px">
+          <input type="text" id="fs-input" placeholder="filename or dirname..." style="flex:1">
+          <button onclick="fsCommand('mkdir')">mkdir</button>
+          <button onclick="fsCommand('touch')" class="secondary">touch</button>
+          <button onclick="fsCommand('cd')" class="secondary">cd</button>
+          <button onclick="fsCommand('cd..')" class="secondary">cd ..</button>
+          <button onclick="fsCommand('rm')" class="secondary" style="background:rgba(239,68,68,.2);border-color:var(--accent5);color:var(--accent5)">rm</button>
+        </div>
+        <div style="margin:8px 0">
+          <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px">Write to file:</div>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="fs-write-content" placeholder="file content..." style="flex:1">
+            <button onclick="fsCommand('write')">write</button>
+          </div>
+        </div>
+        <div class="card-title" style="margin-top:12px"><span class="dot"></span>Directory Contents</div>
+        <div class="file-tree" id="fs-ls"></div>
+        <div class="log-box" id="fs-log" style="margin-top:12px;height:120px"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>File Tree</div>
+        <div id="fs-tree" style="font-size:.75rem;font-family:'JetBrains Mono',monospace;line-height:1.8"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SYNC -->
+  <div id="tab-sync" class="panel">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent3)"></span>Producer-Consumer (Semaphore Synchronization)</div>
+      <div class="controls">
+        <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">Buffer Size: <input type="number" id="buf-size" value="5" min="2" max="10" style="width:60px"></label>
+        <label style="color:var(--muted);font-size:.75rem;display:flex;align-items:center;gap:6px;">Items: <input type="number" id="items-count" value="8" min="1" max="20" style="width:60px"></label>
+        <button onclick="runSync()">▶ Simulate</button>
+        <button class="secondary" onclick="stepSync()">Step by Step</button>
+      </div>
+      <div class="stats" id="sync-stats"></div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Buffer State</div>
+      <div class="buffer-viz" id="buffer-viz"></div>
+      <div class="log-box" id="sync-log"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── STATE ───
+let processes = [];
+let memoryState = { frames: [], pageSize: 256, totalFrames: 16, pid_colors: {} };
+let deadlockState = {
+  n: 5, m: 3,
+  available: [3,3,2],
+  max: [[7,5,3],[3,2,2],[9,0,2],[2,2,2],[4,3,3]],
+  allocation: [[0,1,0],[2,0,0],[3,0,2],[2,1,1],[0,0,2]],
+};
+let fsState = { pwd: '/', ls: [], tree: null, log: [] };
+let syncLog = [];
+let syncStepIdx = 0;
+let pageReplacerState = { numFrames: 4 };
+const COLORS = ['#7c3aed','#0ea5e9','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#06b6d4','#84cc16','#f97316'];
+
+// ─── TAB SWITCHING ───
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ─── SCHEDULING ───
+function generateProcesses(n) {
+  processes = [];
+  for (let i = 0; i < n; i++) {
+    processes.push({
+      pid: i+1, name: `P${i+1}`,
+      burst: randInt(2,12), arrival: randInt(0,5),
+      priority: randInt(1,5), remaining: 0
+    });
+  }
+  processes.forEach(p => p.remaining = p.burst);
+}
+
+function runScheduling() {
+  const algo = document.getElementById('sched-algo').value;
+  const q = parseInt(document.getElementById('quantum').value);
+  const n = parseInt(document.getElementById('num-proc').value);
+  generateProcesses(n);
+  const result = schedule(algo, q);
+  renderSchedulingResult(result);
+  document.getElementById('algo-compare-card').style.display = 'none';
+}
+
+function runAllAlgos() {
+  const n = parseInt(document.getElementById('num-proc').value);
+  const q = parseInt(document.getElementById('quantum').value);
+  generateProcesses(n);
+  const algos = ['FCFS','SJF','Priority','Round Robin'];
+  const results = algos.map(a => schedule(a, q));
+  renderSchedulingResult(results[3]);
+  renderAlgoCompare(results);
+  document.getElementById('algo-compare-card').style.display = 'block';
+}
+
+function schedule(algo, quantum=3) {
+  let procs = processes.map(p => ({...p, remaining: p.burst, finish: 0, start: -1, wait: 0, tat: 0}));
+  let gantt = [], t = 0;
+
+  if (algo === 'FCFS') {
+    procs.sort((a,b) => a.arrival - b.arrival);
+    procs.forEach(p => {
+      if (t < p.arrival) t = p.arrival;
+      p.start = t;
+      gantt.push({name:p.name, start:t, end:t+p.burst, color:COLORS[(p.pid-1)%COLORS.length]});
+      t += p.burst; p.finish = t;
+      p.tat = p.finish - p.arrival; p.wait = p.tat - p.burst;
+    });
+  } else if (algo === 'SJF') {
+    let rem = [...procs];
+    while (rem.length) {
+      let avail = rem.filter(p => p.arrival <= t);
+      if (!avail.length) { t = rem[0].arrival; continue; }
+      let p = avail.reduce((a,b) => a.burst < b.burst ? a : b);
+      rem.splice(rem.indexOf(p),1);
+      if (p.start === -1) p.start = t;
+      gantt.push({name:p.name, start:t, end:t+p.burst, color:COLORS[(p.pid-1)%COLORS.length]});
+      t += p.burst; p.finish = t;
+      p.tat = p.finish - p.arrival; p.wait = p.tat - p.burst;
+    }
+  } else if (algo === 'Priority') {
+    let rem = [...procs];
+    while (rem.length) {
+      let avail = rem.filter(p => p.arrival <= t);
+      if (!avail.length) { t = rem[0].arrival; continue; }
+      let p = avail.reduce((a,b) => a.priority < b.priority ? a : b);
+      rem.splice(rem.indexOf(p),1);
+      if (p.start === -1) p.start = t;
+      gantt.push({name:p.name, start:t, end:t+p.burst, color:COLORS[(p.pid-1)%COLORS.length]});
+      t += p.burst; p.finish = t;
+      p.tat = p.finish - p.arrival; p.wait = p.tat - p.burst;
+    }
+  } else {
+    let sorted = [...procs].sort((a,b) => a.arrival - b.arrival);
+    let queue = [], idx = 0;
+    while (queue.length || idx < sorted.length) {
+      while (idx < sorted.length && sorted[idx].arrival <= t) queue.push(sorted[idx++]);
+      if (!queue.length) { t = sorted[idx].arrival; continue; }
+      let p = queue.shift();
+      if (p.start === -1) p.start = t;
+      let exec = Math.min(quantum, p.remaining);
+      gantt.push({name:p.name, start:t, end:t+exec, color:COLORS[(p.pid-1)%COLORS.length]});
+      t += exec; p.remaining -= exec;
+      while (idx < sorted.length && sorted[idx].arrival <= t) queue.push(sorted[idx++]);
+      if (p.remaining > 0) queue.push(p);
+      else { p.finish = t; p.tat = p.finish - p.arrival; p.wait = p.tat - p.burst; }
+    }
+  }
+  const avgWait = avg(procs.map(p => p.wait));
+  const avgTat = avg(procs.map(p => p.tat));
+  return { algo, procs, gantt, avgWait, avgTat };
+}
+
+function renderSchedulingResult(r) {
+  document.getElementById('sched-stats').innerHTML = `
+    <div class="stat"><div class="stat-val">${r.procs.length}</div><div class="stat-label">Processes</div></div>
+    <div class="stat"><div class="stat-val">${r.avgWait.toFixed(1)}</div><div class="stat-label">Avg Wait</div></div>
+    <div class="stat"><div class="stat-val">${r.avgTat.toFixed(1)}</div><div class="stat-label">Avg TAT</div></div>
+    <div class="stat"><div class="stat-val">${r.gantt[r.gantt.length-1]?.end || 0}</div><div class="stat-label">Total Time</div></div>
+  `;
+  document.getElementById('sched-table-wrap').innerHTML = `
+    <table>
+      <tr><th>Process</th><th>Arrival</th><th>Burst</th><th>Priority</th><th>Start</th><th>Finish</th><th>Wait</th><th>TAT</th></tr>
+      ${r.procs.map(p => `<tr>
+        <td><span style="color:${COLORS[(p.pid-1)%COLORS.length]};font-weight:600">${p.name}</span></td>
+        <td>${p.arrival}</td><td>${p.burst}</td><td>${p.priority}</td>
+        <td>${p.start}</td><td>${p.finish||'?'}</td>
+        <td style="color:${p.wait>5?'var(--accent5)':'var(--accent3)'}">${p.wait||0}</td>
+        <td>${p.tat||0}</td>
+      </tr>`).join('')}
+    </table>`;
+  drawGantt(r.gantt);
+}
+
+function drawGantt(gantt) {
+  const canvas = document.getElementById('gantt-canvas');
+  const wrap = canvas.parentElement;
+  const total = gantt[gantt.length-1]?.end || 1;
+  const W = Math.max(wrap.clientWidth, total * 40);
+  canvas.width = W; canvas.height = 70;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,W,70);
+  const scale = (W-20) / total;
+  gantt.forEach(g => {
+    const x = g.start * scale + 10;
+    const w = (g.end - g.start) * scale - 2;
+    ctx.fillStyle = g.color + '33';
+    ctx.strokeStyle = g.color;
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, x, 8, w, 36, 6);
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 11px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(g.name, x + w/2, 31);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '9px JetBrains Mono';
+    ctx.fillText(g.start, x, 56);
+    if (g === gantt[gantt.length-1]) ctx.fillText(g.end, x+w, 56);
+  });
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+}
+
+function renderAlgoCompare(results) {
+  const maxWait = Math.max(...results.map(r => r.avgWait));
+  document.getElementById('algo-compare-wrap').innerHTML = `
+    <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px">Average Waiting Time (lower = better)</div>
+    <div class="algo-compare">
+      ${results.map((r,i) => `
+        <div class="algo-row">
+          <div class="algo-label">${r.algo}</div>
+          <div class="algo-bar-wrap">
+            <div class="algo-bar" style="width:${(r.avgWait/maxWait*100)||5}%;background:${COLORS[i]}">${r.avgWait.toFixed(1)}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ─── MEMORY ───
+function runMemory() {
+  const total = parseInt(document.getElementById('mem-total').value);
+  const ps = parseInt(document.getElementById('page-size').value);
+  const tf = Math.floor(total / ps);
+  memoryState = { frames: new Array(tf).fill(null), pageSize: ps, totalFrames: tf, pageTables: {}, pid_colors: {}, log: [] };
+  const n = parseInt(document.getElementById('num-proc').value) || 5;
+  generateProcesses(n);
+  processes.slice(0,Math.min(6,n)).forEach((p, i) => {
+    const needed = Math.ceil(randInt(64,512) / ps);
+    const free = memoryState.frames.map((v,i)=>[i,v]).filter(([,v])=>v===null).slice(0,needed);
+    if (free.length >= needed) {
+      memoryState.pid_colors[p.pid] = COLORS[i % COLORS.length];
+      memoryState.pageTables[p.pid] = {};
+      free.forEach(([fi], pi) => {
+        memoryState.frames[fi] = p.pid;
+        memoryState.pageTables[p.pid][pi] = fi;
+      });
+      memoryState.log.push(`✅ Allocated ${needed} frames to ${p.name}`);
+    } else {
+      memoryState.log.push(`❌ Not enough frames for ${p.name}`);
+    }
+  });
+  renderMemory();
+}
+
+function renderMemory() {
+  const { frames, totalFrames, pid_colors } = memoryState;
+  const used = frames.filter(f => f !== null).length;
+  const util = Math.round(used / totalFrames * 100);
+  document.getElementById('mem-stats').innerHTML = `
+    <div class="stat"><div class="stat-val">${totalFrames}</div><div class="stat-label">Total Frames</div></div>
+    <div class="stat"><div class="stat-val" style="background:linear-gradient(135deg,var(--accent3),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">${used}</div><div class="stat-label">Used</div></div>
+    <div class="stat"><div class="stat-val" style="background:linear-gradient(135deg,var(--muted),var(--text));-webkit-background-clip:text;-webkit-text-fill-color:transparent">${totalFrames-used}</div><div class="stat-label">Free</div></div>
+    <div class="stat"><div class="stat-val">${util}%</div><div class="stat-label">Utilization</div></div>`;
+  document.getElementById('mem-progress').style.width = util + '%';
+  document.getElementById('mem-util-label').textContent = `Memory: ${used * memoryState.pageSize} / ${totalFrames * memoryState.pageSize} KB used`;
+  document.getElementById('mem-grid').innerHTML = frames.map((pid, i) => {
+    const col = pid ? (pid_colors[pid] || '#7c3aed') : null;
+    return `<div class="frame ${pid ? 'used' : 'free'}" 
+      style="${pid ? `background:${col}22;border-color:${col}` : ''}"
+      title="Frame ${i}${pid ? ' → P'+pid : ' (free)'}">
+      ${pid ? 'P'+pid : i}
+    </div>`;
+  }).join('');
+  document.getElementById('mem-log').innerHTML = (memoryState.log||[]).map(l =>
+    `<div class="log-line ${l.startsWith('✅')?'log-ok':'log-err'}">${l}</div>`).join('');
+}
+
+function translateAddr() {
+  const pid = parseInt(document.getElementById('trans-pid').value);
+  const addr = parseInt(document.getElementById('trans-addr').value);
+  const ps = memoryState.pageSize;
+  const table = memoryState.pageTables?.[pid];
+  if (!table) { document.getElementById('trans-result').innerHTML = `<span style="color:var(--accent5)">PID ${pid} not in memory</span>`; return; }
+  const page = Math.floor(addr / ps), offset = addr % ps;
+  const frame = table[page];
+  if (frame === undefined) {
+    document.getElementById('trans-result').innerHTML = `<span style="color:var(--accent5)">⚠️ Page Fault! Page ${page} not in memory</span>`;
+  } else {
+    const phys = frame * ps + offset;
+    document.getElementById('trans-result').innerHTML = `
+      <div style="color:var(--accent3)">✅ Translation Successful</div>
+      <div style="margin-top:8px;background:var(--surface2);padding:12px;border-radius:8px;font-size:.75rem;line-height:2">
+        Logical Address: <b>${addr}</b><br>
+        Page Number: <b>${page}</b> | Offset: <b>${offset}</b><br>
+        Frame Number: <b>${frame}</b><br>
+        Physical Address: <b style="color:var(--accent)">${phys}</b>
+      </div>`;
+  }
+}
+
+// ─── DEADLOCK ───
+let dm = { ...deadlockState };
+
+function computeNeed(state) {
+  return state.max.map((row,i) => row.map((v,j) => v - state.allocation[i][j]));
+}
+
+function isSafe(state) {
+  const need = computeNeed(state);
+  const work = [...state.available];
+  const finish = new Array(state.n).fill(false);
+  const seq = [];
+  const log = [];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = 0; i < state.n; i++) {
+      if (!finish[i] && need[i].every((v,j) => v <= work[j])) {
+        for (let j = 0; j < state.m; j++) work[j] += state.allocation[i][j];
+        finish[i] = true; seq.push('P'+i); changed = true;
+        log.push(`P${i} can proceed → Work: [${work.join(', ')}]`);
+      }
+    }
+  }
+  return { safe: seq.length === state.n, seq, log };
+}
+
+function runDeadlock() {
+  dm = JSON.parse(JSON.stringify(deadlockState));
+  const { safe, seq, log } = isSafe(dm);
+  const need = computeNeed(dm);
+  document.getElementById('deadlock-status').innerHTML = safe
+    ? `<span class="badge badge-safe">✅ SAFE STATE</span>`
+    : `<span class="badge badge-danger">❌ UNSAFE / DEADLOCK</span>`;
+  document.getElementById('avail-display').innerHTML = dm.available.map((v,i) =>
+    `<span class="badge badge-info">R${i}: ${v}</span>`).join('');
+  document.getElementById('safe-seq-display').innerHTML = safe
+    ? seq.map(p => `<span class="badge badge-safe">${p}</span>`).join(' → ')
+    : `<span class="badge badge-danger">No safe sequence</span>`;
+  document.getElementById('deadlock-matrix').innerHTML = `
+    <tr><th>PID</th>${['A','B','C'].map(r=>`<th>Alloc ${r}</th>`).join('')}${['A','B','C'].map(r=>`<th>Max ${r}</th>`).join('')}${['A','B','C'].map(r=>`<th>Need ${r}</th>`).join('')}</tr>
+    ${Array.from({length:dm.n},(_,i) => `<tr>
+      <td><b>P${i}</b></td>
+      ${dm.allocation[i].map(v=>`<td>${v}</td>`).join('')}
+      ${dm.max[i].map(v=>`<td>${v}</td>`).join('')}
+      ${need[i].map(v=>`<td style="color:${v<0?'var(--accent5)':'inherit'}">${v}</td>`).join('')}
+    </tr>`).join('')}`;
+  document.getElementById('deadlock-log').innerHTML = log.map(l =>
+    `<div class="log-line log-info">${l}</div>`).join('');
+}
+
+function simulateDeadlock() {
+  dm.allocation = [[1,0,0],[0,1,0],[0,0,1],[1,0,0],[0,1,0]];
+  dm.available = [0,0,0];
+  dm.max = [[2,1,1],[1,2,1],[1,1,2],[2,1,1],[1,2,1]];
+  const { safe, seq, log } = isSafe(dm);
+  document.getElementById('deadlock-status').innerHTML = `<span class="badge badge-danger">🔴 DEADLOCK DETECTED! No process can proceed.</span>`;
+  document.getElementById('avail-display').innerHTML = dm.available.map((v,i) =>
+    `<span class="badge badge-danger">R${i}: ${v}</span>`).join('');
+  document.getElementById('safe-seq-display').innerHTML = `<span class="badge badge-danger">💀 Circular Wait Detected</span>`;
+  const need = computeNeed(dm);
+  document.getElementById('deadlock-matrix').innerHTML = `
+    <tr><th>PID</th>${['A','B','C'].map(r=>`<th>Alloc ${r}</th>`).join('')}${['A','B','C'].map(r=>`<th>Max ${r}</th>`).join('')}${['A','B','C'].map(r=>`<th>Need ${r}</th>`).join('')}</tr>
+    ${Array.from({length:dm.n},(_,i) => `<tr>
+      <td><b>P${i}</b></td>
+      ${dm.allocation[i].map(v=>`<td>${v}</td>`).join('')}
+      ${dm.max[i].map(v=>`<td>${v}</td>`).join('')}
+      ${need[i].map(v=>`<td style="color:var(--accent5)">${v}</td>`).join('')}
+    </tr>`).join('')}`;
+  document.getElementById('deadlock-log').innerHTML = `<div class="log-line log-err">🔴 All processes are blocked — DEADLOCK</div>`;
+}
+
+function requestResource() {
+  const pid = parseInt(document.getElementById('req-pid').value);
+  const req = [
+    parseInt(document.getElementById('req-r0').value),
+    parseInt(document.getElementById('req-r1').value),
+    parseInt(document.getElementById('req-r2').value),
+  ];
+  const need = computeNeed(dm);
+  if (req.some((v,j) => v > need[pid][j])) {
+    document.getElementById('req-result').innerHTML = `<span style="color:var(--accent5)">❌ Exceeds maximum claim for P${pid}</span>`;
+    return;
+  }
+  if (req.some((v,j) => v > dm.available[j])) {
+    document.getElementById('req-result').innerHTML = `<span style="color:var(--accent4)">⏳ P${pid} must wait — resources unavailable</span>`;
+    return;
+  }
+  const trial = JSON.parse(JSON.stringify(dm));
+  req.forEach((v,j) => { trial.available[j] -= v; trial.allocation[pid][j] += v; });
+  const { safe, seq, log } = isSafe(trial);
+  if (safe) {
+    req.forEach((v,j) => { dm.available[j] -= v; dm.allocation[pid][j] += v; });
+    document.getElementById('req-result').innerHTML = `<span style="color:var(--accent3)">✅ Request granted! Safe sequence: ${seq.join(' → ')}</span>`;
+  } else {
+    document.getElementById('req-result').innerHTML = `<span style="color:var(--accent5)">❌ Request denied — would cause unsafe state</span>`;
+  }
+  document.getElementById('deadlock-log').innerHTML = log.map(l =>
+    `<div class="log-line log-info">${l}</div>`).join('');
+}
+
+// ─── PAGE REPLACEMENT ───
+function runPaging() {
+  const nf = parseInt(document.getElementById('page-frames').value);
+  const refStr = document.getElementById('ref-string').value.split(',').map(Number).filter(n => !isNaN(n));
+  const fifo = fifoAlgo(refStr, nf);
+  const lru = lruAlgo(refStr, nf);
+  const opt = optAlgo(refStr, nf);
+  const results = [fifo, lru, opt];
+  document.getElementById('page-stats').innerHTML = results.map(r => `
+    <div class="stat">
+      <div class="stat-val" style="font-size:1.2rem">${r.faults}</div>
+      <div class="stat-label">${r.algo} Faults</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" style="font-size:1.2rem;background:linear-gradient(135deg,var(--accent3),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">${r.hits}</div>
+      <div class="stat-label">${r.algo} Hits</div>
+    </div>`).join('');
+  document.getElementById('page-results').innerHTML = results.map(r => renderPageTable(r, refStr, nf)).join('');
+}
+
+function fifoAlgo(ref, nf) {
+  let frames=[], order=[], faults=0, log=[];
+  for (let page of ref) {
+    let fault=false;
+    if (!frames.includes(page)) {
+      fault=true; faults++;
+      if (frames.length<nf) { frames.push(page); order.push(page); }
+      else { let e=order.shift(); frames[frames.indexOf(e)]=page; order.push(page); }
+    }
+    log.push({page, frames:[...frames], fault});
+  }
+  return {algo:'FIFO', faults, hits:ref.length-faults, log};
+}
+
+function lruAlgo(ref, nf) {
+  let frames=[], usage={}, faults=0, log=[];
+  ref.forEach((page,t) => {
+    let fault=false;
+    if (!frames.includes(page)) {
+      fault=true; faults++;
+      if (frames.length<nf) frames.push(page);
+      else { let lp=frames.reduce((a,b)=>(usage[a]||0)<(usage[b]||0)?a:b); frames[frames.indexOf(lp)]=page; }
+    }
+    usage[page]=t;
+    log.push({page, frames:[...frames], fault});
+  });
+  return {algo:'LRU', faults, hits:ref.length-faults, log};
+}
+
+function optAlgo(ref, nf) {
+  let frames=[], faults=0, log=[];
+  ref.forEach((page,i) => {
+    let fault=false;
+    if (!frames.includes(page)) {
+      fault=true; faults++;
+      if (frames.length<nf) frames.push(page);
+      else {
+        let future=ref.slice(i+1);
+        let evict=frames.reduce((a,b)=>{
+          let ai=future.indexOf(a), bi=future.indexOf(b);
+          return (ai===-1?Infinity:ai)>(bi===-1?Infinity:bi)?a:b;
+        });
+        frames[frames.indexOf(evict)]=page;
+      }
+    }
+    log.push({page, frames:[...frames], fault});
+  });
+  return {algo:'Optimal', faults, hits:ref.length-faults, log};
+}
+
+function renderPageTable(result, refStr, nf) {
+  const colors = {FIFO:'var(--accent)',LRU:'var(--accent2)',Optimal:'var(--accent3)'};
+  return `<div style="margin-bottom:20px">
+    <div style="font-size:.75rem;color:${colors[result.algo]};font-weight:600;margin-bottom:8px">
+      ${result.algo} — ${result.faults} faults / ${result.hits} hits (Hit Rate: ${(result.hits/refStr.length*100).toFixed(0)}%)
+    </div>
+    <div class="page-table">
+      <div class="page-row" style="margin-bottom:6px">
+        <div class="page-cell" style="color:var(--muted);font-size:.6rem;width:50px">Ref →</div>
+        ${refStr.map(p=>`<div class="page-cell" style="background:rgba(255,255,255,.05);color:var(--muted)">${p}</div>`).join('')}
+      </div>
+      ${Array.from({length:nf},(_,fi)=>`
+        <div class="page-row">
+          <div class="page-cell" style="color:var(--muted);font-size:.6rem;width:50px">F${fi}</div>
+          ${result.log.map(e=>`<div class="page-cell ${e.fault&&e.frames[fi]!==undefined?'fault':e.frames[fi]!==undefined?'frame-val':'empty'}">${e.frames[fi]!==undefined?e.frames[fi]:''}</div>`).join('')}
+        </div>`).join('')}
+      <div class="page-row" style="margin-top:4px">
+        <div class="page-cell" style="color:var(--muted);font-size:.6rem;width:50px">F/H</div>
+        ${result.log.map(e=>`<div class="page-cell ${e.fault?'fault':'hit'}">${e.fault?'F':'H'}</div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function randomRefString() {
+  const n = 20;
+  document.getElementById('ref-string').value = Array.from({length:n},()=>randInt(0,7)).join(',');
+}
+
+// ─── FILE SYSTEM ───
+let fsTree = null;
+let fsCurrent = '/';
+let fsContents = {};
+
+function initFS() {
+  fsTree = {
+    '/': {type:'dir', children:{
+      'home': {type:'dir', children:{
+        'user': {type:'dir', children:{
+          'readme.txt': {type:'file', content:'Welcome to OS Simulator!'},
+          'notes.txt': {type:'file', content:'Operating Systems Project'},
+        }}
+      }},
+      'bin': {type:'dir', children:{}},
+      'etc': {type:'dir', children:{}},
+      'var': {type:'dir', children:{}},
+    }}
+  };
+  fsCurrent = '/';
+  fsLog(['🚀 File system initialized']);
+  renderFS();
+}
+
+function getNode(path) {
+  if (path === '/') return fsTree['/'];
+  const parts = path.split('/').filter(Boolean);
+  let node = fsTree['/'];
+  for (const part of parts) {
+    if (!node.children || !node.children[part]) return null;
+    node = node.children[part];
+  }
+  return node;
+}
+
+function currentNode() { return getNode(fsCurrent); }
+
+function fsCommand(cmd) {
+  const input = document.getElementById('fs-input').value.trim();
+  const writeContent = document.getElementById('fs-write-content').value;
+  const node = currentNode();
+  if (!node) return;
+
+  if (cmd === 'mkdir') {
+    if (!input) return;
+    if (node.children[input]) { fsLog([`❌ '${input}' already exists`]); }
+    else { node.children[input] = {type:'dir', children:{}}; fsLog([`📁 mkdir ${input}`]); }
+  } else if (cmd === 'touch') {
+    if (!input) return;
+    if (node.children[input]) { fsLog([`❌ '${input}' already exists`]); }
+    else { node.children[input] = {type:'file', content:''}; fsLog([`📄 created ${input}`]); }
+  } else if (cmd === 'cd') {
+    if (!input) return;
+    if (!node.children[input] || node.children[input].type !== 'dir') { fsLog([`❌ No such directory: ${input}`]); }
+    else {
+      fsCurrent = (fsCurrent === '/' ? '' : fsCurrent) + '/' + input;
+      fsLog([`📂 cd ${fsCurrent}`]);
+    }
+  } else if (cmd === 'cd..') {
+    if (fsCurrent === '/') return;
+    const parts = fsCurrent.split('/').filter(Boolean);
+    parts.pop();
+    fsCurrent = parts.length ? '/' + parts.join('/') : '/';
+    fsLog([`📂 cd ${fsCurrent}`]);
+  } else if (cmd === 'rm') {
+    if (!input || !node.children[input]) { fsLog([`❌ '${input}' not found`]); }
+    else { delete node.children[input]; fsLog([`🗑️ deleted ${input}`]); }
+  } else if (cmd === 'write') {
+    if (!input) return;
+    if (!node.children[input]) node.children[input] = {type:'file', content:''};
+    if (node.children[input].type === 'file') {
+      node.children[input].content = writeContent;
+      fsLog([`✍️ wrote to ${input}`]);
+    }
+  }
+  document.getElementById('fs-input').value = '';
+  renderFS();
+}
+
+function renderFS() {
+  document.getElementById('fs-pwd').textContent = fsCurrent;
+  const node = currentNode();
+  const items = node ? Object.entries(node.children) : [];
+  document.getElementById('fs-ls').innerHTML = items.length
+    ? items.map(([name, n]) => `
+        <div class="tree-item" onclick="fsClickItem('${name}', '${n.type}')">
+          ${n.type === 'dir'
+            ? `<span class="tree-dir">📁 ${name}/</span>`
+            : `<span class="tree-file">📄 ${name} <span style="color:var(--muted);font-size:.65rem">(${n.content?.length||0} bytes)</span></span>`}
+        </div>`).join('')
+    : '<div style="color:var(--muted);font-size:.75rem">Empty directory</div>';
+  document.getElementById('fs-tree').innerHTML = renderTreeNode('/', fsTree['/'], 0);
+}
+
+function fsClickItem(name, type) {
+  document.getElementById('fs-input').value = name;
+}
+
+function renderTreeNode(name, node, depth) {
+  const indent = '  '.repeat(depth);
+  if (node.type === 'file') {
+    return `<div style="padding-left:${depth*16}px;color:var(--text)">📄 ${name}</div>`;
+  }
+  const children = node.children ? Object.entries(node.children) : [];
+  return `<div style="padding-left:${depth*16}px;color:var(--accent4);font-weight:600">📁 ${name}/</div>
+    ${children.map(([n,c]) => renderTreeNode(n,c,depth+1)).join('')}`;
+}
+
+let fsLogs = [];
+function fsLog(msgs) {
+  fsLogs = [...fsLogs, ...msgs].slice(-50);
+  document.getElementById('fs-log').innerHTML = fsLogs.map(l =>
+    `<div class="log-line ${l.startsWith('❌')?'log-err':l.startsWith('✅')?'log-ok':'log-info'}">${l}</div>`).join('');
+  document.getElementById('fs-log').scrollTop = 9999;
+}
+
+// ─── SYNC ───
+let syncAllLog = [];
+let syncSteps = [];
+
+function runSync() {
+  const bufSize = parseInt(document.getElementById('buf-size').value);
+  const items = parseInt(document.getElementById('items-count').value);
+  syncAllLog = [];
+  syncSteps = [];
+  let buffer = [];
+  let produced = 0, consumed = 0;
+  const itemList = Array.from({length:items}, (_,i) => `item_${i+1}`);
+  let pi = 0, ci = 0;
+  while (pi < items || ci < items) {
+    if (pi < items && buffer.length < bufSize) {
+      buffer.push(itemList[pi++]);
+      produced++;
+      syncAllLog.push({type:'produce', msg:`📦 Produced: ${itemList[pi-1]}`, buffer:[...buffer]});
+    } else if (ci < items && buffer.length > 0) {
+      const item = buffer.shift();
+      consumed++;
+      ci++;
+      syncAllLog.push({type:'consume', msg:`✅ Consumed: ${item}`, buffer:[...buffer]});
+    } else if (pi < items && buffer.length >= bufSize) {
+      syncAllLog.push({type:'block', msg:`⏳ Producer blocked – buffer full (${bufSize})`, buffer:[...buffer]});
+      const item = buffer.shift(); consumed++; ci++;
+      syncAllLog.push({type:'consume', msg:`✅ Consumed: ${item}`, buffer:[...buffer]});
+      buffer.push(itemList[pi++]); produced++;
+      syncAllLog.push({type:'produce', msg:`📦 Produced: ${itemList[pi-1]}`, buffer:[...buffer]});
+    } else {
+      syncAllLog.push({type:'block', msg:`⏳ Consumer blocked – buffer empty`, buffer:[...buffer]});
+      if (pi < items) { buffer.push(itemList[pi++]); produced++; }
+      else break;
+    }
+    if (syncAllLog.length > 200) break;
+  }
+  syncStepIdx = syncAllLog.length;
+  renderSyncAll();
+}
+
+function stepSync() {
+  if (!syncAllLog.length) runSync();
+  syncStepIdx = 0;
+  renderSyncStep();
+}
+
+function renderSyncStep() {
+  if (syncStepIdx >= syncAllLog.length) { renderSyncAll(); return; }
+  const entry = syncAllLog[syncStepIdx++];
+  renderSyncBuffer(entry.buffer);
+  const log = document.getElementById('sync-log');
+  const cls = entry.type==='produce'?'log-ok':entry.type==='consume'?'log-info':'log-warn';
+  log.innerHTML += `<div class="log-line ${cls}">${entry.msg}</div>`;
+  log.scrollTop = 9999;
+  setTimeout(() => { if (syncStepIdx < syncAllLog.length) renderSyncStep(); }, 200);
+}
+
+function renderSyncAll() {
+  const last = syncAllLog[syncAllLog.length-1];
+  const bufSize = parseInt(document.getElementById('buf-size').value);
+  const produced = syncAllLog.filter(l=>l.type==='produce').length;
+  const consumed = syncAllLog.filter(l=>l.type==='consume').length;
+  document.getElementById('sync-stats').innerHTML = `
+    <div class="stat"><div class="stat-val">${bufSize}</div><div class="stat-label">Buffer Size</div></div>
+    <div class="stat"><div class="stat-val" style="background:linear-gradient(135deg,var(--accent2),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">${produced}</div><div class="stat-label">Produced</div></div>
+    <div class="stat"><div class="stat-val" style="background:linear-gradient(135deg,var(--accent3),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">${consumed}</div><div class="stat-label">Consumed</div></div>`;
+  renderSyncBuffer(last?.buffer || []);
+  document.getElementById('sync-log').innerHTML = syncAllLog.map(e => {
+    const cls = e.type==='produce'?'log-ok':e.type==='consume'?'log-info':'log-warn';
+    return `<div class="log-line ${cls}">${e.msg}</div>`;
+  }).join('');
+  document.getElementById('sync-log').scrollTop = 9999;
+}
+
+function renderSyncBuffer(buffer) {
+  const bufSize = parseInt(document.getElementById('buf-size').value);
+  const slots = Array.from({length:bufSize}, (_,i) => buffer[i] || null);
+  document.getElementById('buffer-viz').innerHTML = slots.map(item =>
+    `<div class="buffer-slot ${item?'filled':'empty'}">${item||'—'}</div>`).join('');
+}
+
+// ─── UTILS ───
+function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+function avg(arr) { return arr.reduce((s,v)=>s+v,0)/arr.length || 0; }
+
+// ─── INIT ───
+window.onload = () => {
+  runScheduling();
+  runMemory();
+  runDeadlock();
+  runPaging();
+  initFS();
+  runSync();
+};
+
+window.onresize = () => {
+  const sched = document.getElementById('tab-scheduling');
+  if (sched.classList.contains('active')) {
+    const gantt = document.getElementById('gantt-canvas');
+    if (gantt._lastGantt) drawGantt(gantt._lastGantt);
+  }
+};
+</script>
+</body>
+</html>
